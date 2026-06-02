@@ -1,0 +1,104 @@
+/* Mega Dashboard – Dark Charcoal Theme with Teal‑Green Accent */
+
+/* Core design tokens */
+:root {
+  /* Backgrounds */
+  --color-background-primary: #0b1220; /* Charcoal page background */
+  --color-background-secondary: #0f1724; /* Panel / surface */
+  --color-card: #0b1420; /* Card background */
+
+  /* Text */
+  --color-text-primary: #e6eef8; /* Primary text */
+  --color-text-secondary: #9aa6b2; /* Secondary/muted text */
+  --color-text-tertiary: rgba(230,238,248,0.8);
+
+  /* Accent */
+  --color-accent: #00bfa5; /* Teal‑green accent */
+  --color-accent-secondary: #00c5b7; /* Slightly lighter teal for hover */
+
+  /* Borders & shadows */
+  --color-border-primary: rgba(255,255,255,0.06);
+  --color-border-secondary: rgba(255,255,255,0.04);
+  --color-border: rgba(255,255,255,0.06);
+  --color-glass: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+
+  /* Misc */
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+/* Global resets */
+*, *::before, *::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font-sans);
+  background: var(--color-background-primary);
+  color: var(--color-text-primary);
+}
+
+/* Containers */
+main, .app, #root {
+  background: transparent;
+  color: var(--color-text-primary);
+}
+
+/* Links */
+a {
+  color: var(--color-accent);
+  text-decoration: none;
+}
+a:hover { text-decoration: underline; }
+
+/* Cards / Panels */
+.card, .panel {
+  background: var(--color-background-secondary);
+  border: 1px solid var(--color-border-primary);
+  box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+  border-radius: var(--border-radius-md);
+}
+
+/* Buttons */
+button, .btn {
+  background: transparent;
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  padding: 8px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+button.primary, .btn-primary {
+  background: var(--color-accent);
+  border: none;
+  color: white;
+}
+button.primary:hover, .btn-primary:hover { background: var(--color-accent-secondary); }
+
+/* Form controls */
+input, textarea, select {
+  background: var(--color-card);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-primary);
+  padding: 8px 10px;
+  border-radius: 6px;
+}
+
+/* Typography */
+h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); margin: 0 0 8px 0; }
+p, span, label { color: var(--color-text-secondary); }
+
+/* Utility classes */
+.glow, .neon { box-shadow: none; text-shadow: none; }
+
+/* Legacy variable aliases for backward compatibility */
+:root {
+  --bg: var(--color-background-primary);
+  --surface: var(--color-background-secondary);
+  --card: var(--color-card);
+  --text: var(--color-text-primary);
+  --muted: var(--color-text-secondary);
+  --accent: var(--color-accent);
+  --border: var(--color-border-primary);
+  --glass: var(--color-glass);
+}

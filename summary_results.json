@@ -1,0 +1,26 @@
+{
+  "p2p_gnutella": {
+    "nodes": [],
+    "edges": [],
+    "budget_per_step": 3.0,
+    "episodes": 1,
+    "gnn_rl": {},
+    "baselines": {}
+  },
+  "ca_grqc": {
+    "nodes": [],
+    "edges": [],
+    "budget_per_step": 3.0,
+    "episodes": 1,
+    "gnn_rl": {},
+    "baselines": {}
+  },
+  "facebook": {
+    "nodes": [],
+    "edges": [],
+    "budget_per_step": 3.0,
+    "episodes": 1,
+    "gnn_rl": {},
+    "baselines": {}
+  }
+}

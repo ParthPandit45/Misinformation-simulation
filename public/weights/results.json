@@ -1,0 +1,80 @@
+{
+  "p2p_gnutella": {
+    "nodes": [],
+    "edges": [],
+    "budget_per_step": 3.0,
+    "episodes": 1,
+    "gnn_rl": {},
+    "baselines": {}
+  },
+  "ca_grqc": {
+    "nodes": [],
+    "edges": [],
+    "budget_per_step": 3.0,
+    "episodes": 1,
+    "gnn_rl": {},
+    "baselines": {}
+  },
+  "facebook": {
+    "nodes": [],
+    "edges": [],
+    "budget_per_step": 3.0,
+    "episodes": 1,
+    "gnn_rl": {},
+    "baselines": {}
+  },
+  "_meta": {
+    "weight_files": [
+      "p2p_gnutella_final_seed0",
+      "p2p_gnutella_final_seed1",
+      "p2p_gnutella_final_seed2",
+      "ca_grqc_final_seed0",
+      "ca_grqc_final_seed1",
+      "ca_grqc_final_seed2",
+      "facebook_final_seed0",
+      "facebook_final_seed1",
+      "facebook_final_seed2"
+    ]
+  },
+  "_models_meta": {
+    "p2p_gnutella": {
+      "checkpoints": [
+        "final",
+        "ep500",
+        "ep1000"
+      ],
+      "seeds": [
+        0,
+        1,
+        2
+      ]
+    },
+    "ca_grqc": {
+      "checkpoints": [
+        "final",
+        "ep500",
+        "ep1000"
+      ],
+      "seeds": [
+        0,
+        1,
+        2
+      ]
+    },
+    "facebook": {
+      "checkpoints": [
+        "final",
+        "ep500",
+        "ep1000",
+        "ep1500",
+        "ep2000",
+        "ep2500"
+      ],
+      "seeds": [
+        0,
+        1,
+        2
+      ]
+    }
+  }
+}
