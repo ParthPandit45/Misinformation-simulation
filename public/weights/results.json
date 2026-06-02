@@ -1,27 +1,54 @@
 {
   "p2p_gnutella": {
-    "nodes": [],
-    "edges": [],
-    "budget_per_step": 3.0,
-    "episodes": 1,
-    "gnn_rl": {},
-    "baselines": {}
+    "nodes": 6299,
+    "edges": 20776,
+    "budget_per_step": 200,
+    "episodes": 1200,
+    "gnn_rl": {
+      "median": 381.0,
+      "std": 55.32784170765394,
+      "suppression_pct": 93.04744525547444
+    },
+    "baselines": {
+      "none": 5477.0,
+      "passive_degree": 5477.0,
+      "active_random": 5194.0,
+      "active_degree": 5232.0
+    }
   },
   "ca_grqc": {
-    "nodes": [],
-    "edges": [],
-    "budget_per_step": 3.0,
-    "episodes": 1,
-    "gnn_rl": {},
-    "baselines": {}
+    "nodes": 4158,
+    "edges": 13428,
+    "budget_per_step": 80,
+    "episodes": 1200,
+    "gnn_rl": {
+      "median": 213.0,
+      "std": 138.42802266996904,
+      "suppression_pct": 93.76463700234193
+    },
+    "baselines": {
+      "none": 3439.0,
+      "passive_degree": 3439.0,
+      "active_random": 3033.0,
+      "active_degree": 3092.0
+    }
   },
   "facebook": {
-    "nodes": [],
-    "edges": [],
-    "budget_per_step": 3.0,
-    "episodes": 1,
-    "gnn_rl": {},
-    "baselines": {}
+    "nodes": 4039,
+    "edges": 88234,
+    "budget_per_step": 100,
+    "episodes": 2500,
+    "gnn_rl": {
+      "median": 587.0,
+      "std": 1782.0923306130721,
+      "suppression_pct": 85.29190679027813
+    },
+    "baselines": {
+      "none": 3988.0,
+      "passive_degree": 3988.0,
+      "active_random": 3797.0,
+      "active_degree": 3757.0
+    }
   },
   "_meta": {
     "weight_files": [
