@@ -1,9 +1,10 @@
 {
   "services": [
     {
-      "name": "api",
+      "name": "Misinformation-simulation",
       "dockerfilePath": "./Dockerfile",
-      "port": 8000
+      "port": 8000,
+      "type": "web"
     }
   ]
 }
