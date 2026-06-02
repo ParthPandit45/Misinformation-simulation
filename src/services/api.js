@@ -1,5 +1,5 @@
 export async function predictGNN(gname, checkpoint = "final", seed = 0) {
-  const response = await fetch('http://localhost:8000/gnn/predict', {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE}/gnn/predict`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ graph: gname, checkpoint, seed })
@@ -14,7 +14,7 @@ export async function predictGNN(gname, checkpoint = "final", seed = 0) {
 }
 
 export async function predictAction(stateVector, gname = "p2p_gnutella", checkpoint = "final", seed = 0) {
-  const response = await fetch('http://localhost:8000/rl/action', {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE}/rl/action`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ state: stateVector, graph: gname, checkpoint, seed })
@@ -28,7 +28,7 @@ export async function predictAction(stateVector, gname = "p2p_gnutella", checkpo
 }
 
 export async function simulateStrategyAPI(gname, strategy, nodes, edges, timesteps = 60, budget = 3.0, checkpoint = "final", seed = 0) {
-  const response = await fetch('http://localhost:8000/api/simulate', {
+  const response = await fetch(`${import.meta.env.VITE_API_BASE}/api/simulate`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
