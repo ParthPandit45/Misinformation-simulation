@@ -68,7 +68,7 @@ uvicorn backend.api:app --host 0.0.0.0 --port 8000
 
 # In a separate terminal, start the React/Vite dev server
 npm run dev
-```
+```\n```\n\n## Deploying the Backend to Railway\n\n1. Ensure you have a Railway account and the CLI installed (`npm i -g railway`).\n2. Run the following commands in the project root:\n\n```bash\nrailway init            # creates a new Railway project\nrailway up              # builds the Docker image (uses the Dockerfile in backend/) and deploys it\n```\n\nRailway will provide a public URL (e.g., `https://your-project.up.railway.app`).  Copy that URL and set it as the `VITE_API_BASE` environment variable in Netlify:\n\n- Netlify dashboard → **Site settings → Build & Deploy → Environment** → add `VITE_API_BASE` with the Railway URL.\n\nAfter redeploying Netlify, the frontend will communicate with the live backend.\n
 
 The application will be available at `http://localhost:5173` (Vite default) and will communicate with the backend at `http://localhost:8000`.
 
