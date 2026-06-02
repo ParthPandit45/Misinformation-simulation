@@ -37,3 +37,6 @@ coverage.xml
 .gemini/
 .antigravity/
 .env
+
+# Local Netlify folder
+.netlify
