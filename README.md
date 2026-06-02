@@ -58,8 +58,6 @@ mega-dashboard-repo/
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourorg/mega-dashboard-repo.git
-cd mega-dashboard-repo/mega-repo
 
 # Install dependencies (Node.js >= 20, Python >= 3.10)
 npm install          # Front‑end packages
