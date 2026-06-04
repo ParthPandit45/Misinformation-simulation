@@ -21,6 +21,455 @@ import { evaluateAcademicBatch, toCSV } from "../../../utils/academicEvaluation.
 import { predictGNN, simulateStrategyAPI } from "../../../services/api.js";
 import { GRAPH_META, STRATEGIES, ACTIONS, SUMMARY, loadSummaryOverride } from "../data/dashboardData.js";
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ADVANCED ANALYTICS & DATA PROCESSING UTILITIES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Advanced statistics calculator for comprehensive data analysis
+ * Computes multiple statistical measures for belief propagation metrics
+ */
+const StatisticsEngine = {
+  // Compute percentile values from array
+  percentile: (arr, p) => {
+    if (!arr.length) return 0;
+    const sorted = [...arr].sort((a, b) => a - b);
+    const idx = (p / 100) * (sorted.length - 1);
+    const lower = Math.floor(idx);
+    const upper = Math.ceil(idx);
+    const weight = idx % 1;
+    return sorted[lower] * (1 - weight) + sorted[upper] * weight;
+  },
+
+  // Calculate quartiles for distribution analysis
+  quartiles: (arr) => ({
+    q0: Math.min(...arr),
+    q1: StatisticsEngine.percentile(arr, 25),
+    q2: StatisticsEngine.percentile(arr, 50),
+    q3: StatisticsEngine.percentile(arr, 75),
+    q4: Math.max(...arr),
+  }),
+
+  // Compute skewness of distribution
+  skewness: (arr) => {
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const variance = arr.reduce((acc, v) => acc + (v - mean) ** 2, 0) / arr.length;
+    const std = Math.sqrt(variance);
+    if (std === 0) return 0;
+    const m3 = arr.reduce((acc, v) => acc + ((v - mean) ** 3), 0) / arr.length;
+    return m3 / (std ** 3);
+  },
+
+  // Calculate kurtosis for tail analysis
+  kurtosis: (arr) => {
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const variance = arr.reduce((acc, v) => acc + (v - mean) ** 2, 0) / arr.length;
+    const std = Math.sqrt(variance);
+    if (std === 0) return 0;
+    const m4 = arr.reduce((acc, v) => acc + ((v - mean) ** 4), 0) / arr.length;
+    return m4 / (variance ** 2) - 3;
+  },
+
+  // Compute coefficient of variation for normalized spread
+  coefficientOfVariation: (arr) => {
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    if (mean === 0) return 0;
+    const std = Math.sqrt(arr.reduce((acc, v) => acc + (v - mean) ** 2, 0) / arr.length);
+    return (std / mean) * 100;
+  },
+
+  // Moving average computation
+  movingAverage: (arr, windowSize) => {
+    if (windowSize <= 0 || windowSize > arr.length) return arr;
+    const result = [];
+    for (let i = 0; i < arr.length; i++) {
+      const start = Math.max(0, i - Math.floor(windowSize / 2));
+      const end = Math.min(arr.length, i + Math.ceil(windowSize / 2));
+      const window = arr.slice(start, end);
+      result.push(window.reduce((a, b) => a + b, 0) / window.length);
+    }
+    return result;
+  },
+
+  // Exponential moving average for smoothing
+  exponentialMovingAverage: (arr, alpha = 0.3) => {
+    if (!arr.length) return [];
+    const result = [arr[0]];
+    for (let i = 1; i < arr.length; i++) {
+      result.push(alpha * arr[i] + (1 - alpha) * result[i - 1]);
+    }
+    return result;
+  },
+
+  // Autocorrelation for temporal dependency
+  autocorrelation: (arr, lag = 1) => {
+    const mean = arr.reduce((a, b) => a + b, 0) / arr.length;
+    const c0 = arr.reduce((acc, v) => acc + (v - mean) ** 2, 0) / arr.length;
+    if (c0 === 0) return 0;
+    const c_lag = arr.slice(lag).reduce((acc, v, i) => acc + (v - mean) * (arr[i] - mean), 0) / arr.length;
+    return c_lag / c0;
+  },
+};
+
+/**
+ * Performance analysis utilities for strategy comparison
+ */
+const PerformanceAnalyzer = {
+  // Calculate suppression effectiveness
+  calculateSuppression: (baselineMetric, strategicMetric) => {
+    if (baselineMetric === 0) return 0;
+    return ((baselineMetric - strategicMetric) / baselineMetric) * 100;
+  },
+
+  // Rank strategies by performance
+  rankStrategies: (metrics) => {
+    return Object.entries(metrics)
+      .sort(([, a], [, b]) => b - a)
+      .map(([strategy, score], rank) => ({ rank: rank + 1, strategy, score }));
+  },
+
+  // Calculate relative improvement over baseline
+  relativeImprovement: (baseline, alternatives) => {
+    return Object.fromEntries(
+      Object.entries(alternatives).map(([key, value]) => [
+        key,
+        baseline > 0 ? ((baseline - value) / baseline) * 100 : 0,
+      ])
+    );
+  },
+
+  // Win-loss-tie comparison
+  compareStrategies: (strategy1Metrics, strategy2Metrics) => {
+    let wins = 0, losses = 0, ties = 0;
+    Object.keys(strategy1Metrics).forEach((key) => {
+      const s1 = strategy1Metrics[key];
+      const s2 = strategy2Metrics[key];
+      if (s1 < s2) wins++;
+      else if (s1 > s2) losses++;
+      else ties++;
+    });
+    return { wins, losses, ties, winRate: (wins / (wins + losses + ties)) * 100 };
+  },
+
+  // Calculate dominance score (Pareto efficiency)
+  calculateDominanceScore: (metrics, weights) => {
+    return Object.entries(metrics).reduce((score, [key, value]) => {
+      return score + (value * (weights[key] || 1));
+    }, 0);
+  },
+};
+
+/**
+ * Network graph analysis utilities
+ */
+const GraphAnalyzer = {
+  // Calculate node centrality measures
+  calculateCentrality: (nodes, edges) => {
+    const adj = nodes.map(() => []);
+    edges.forEach(([a, b]) => {
+      adj[a].push(b);
+      adj[b].push(a);
+    });
+
+    const centrality = nodes.map((n, idx) => {
+      const degree = adj[idx].length;
+      const avgBelief = adj[idx].length > 0
+        ? adj[idx].reduce((sum, nei) => sum + nodes[nei].belief, 0) / adj[idx].length
+        : 0;
+      return { idx, degree, avgBelief, closenessApprox: 1 / (degree + 1) };
+    });
+
+    return centrality;
+  },
+
+  // Identify influential clusters
+  identifyInfluentialClusters: (nodes, edges, beliefThreshold = 0.5) => {
+    const adj = nodes.map(() => []);
+    edges.forEach(([a, b]) => {
+      adj[a].push(b);
+      adj[b].push(a);
+    });
+
+    const highBelief = nodes.filter(n => n.belief > beliefThreshold);
+    const clusters = [];
+    const visited = new Set();
+
+    highBelief.forEach(node => {
+      if (!visited.has(node.id)) {
+        const cluster = [];
+        const queue = [node.id];
+
+        while (queue.length > 0) {
+          const current = queue.shift();
+          if (visited.has(current)) continue;
+          visited.add(current);
+          cluster.push(current);
+
+          adj[current].forEach(neighbor => {
+            if (!visited.has(neighbor) && nodes[neighbor].belief > beliefThreshold) {
+              queue.push(neighbor);
+            }
+          });
+        }
+
+        if (cluster.length > 0) {
+          clusters.push({
+            size: cluster.length,
+            avgBelief: cluster.reduce((sum, idx) => sum + nodes[idx].belief, 0) / cluster.length,
+            nodes: cluster,
+          });
+        }
+      }
+    });
+
+    return clusters.sort((a, b) => b.size - a.size);
+  },
+
+  // Calculate graph connectivity metrics
+  calculateConnectivityMetrics: (nodes, edges) => {
+    const n = nodes.length;
+    const m = edges.length;
+    const density = n > 1 ? (2 * m) / (n * (n - 1)) : 0;
+
+    const adj = nodes.map(() => []);
+    edges.forEach(([a, b]) => {
+      adj[a].push(b);
+      adj[b].push(a);
+    });
+
+    const degrees = adj.map(neighbors => neighbors.length);
+    const avgDegree = degrees.reduce((a, b) => a + b, 0) / n;
+    const maxDegree = Math.max(...degrees);
+    const minDegree = Math.min(...degrees);
+
+    return { density, avgDegree, maxDegree, minDegree, nodes: n, edges: m };
+  },
+
+  // Compute infection spread velocity
+  calculateSpreadVelocity: (snapshots) => {
+    if (snapshots.length < 2) return [];
+    const velocities = [];
+
+    for (let t = 1; t < snapshots.length; t++) {
+      const infected = (snap) =>
+        snap.nodes.filter(n => n.belief > 0.5 && !n.treated).length;
+      const delta = infected(snapshots[t]) - infected(snapshots[t - 1]);
+      velocities.push({ timestep: t, velocity: delta });
+    }
+
+    return velocities;
+  },
+};
+
+/**
+ * Budget and resource optimization utilities
+ */
+const BudgetOptimizer = {
+  // Analyze budget efficiency
+  analyzeBudgetEfficiency: (budget, suppressionAchieved) => {
+    return suppressionAchieved / budget;
+  },
+
+  // Calculate ROI for different strategies
+  calculateROI: (budgetSpent, suppressionGain) => {
+    return budgetSpent > 0 ? (suppressionGain / budgetSpent) * 100 : 0;
+  },
+
+  // Predict optimal budget allocation
+  optimizeBudgetAllocation: (strategyEfficiency) => {
+    const totalEfficiency = Object.values(strategyEfficiency).reduce((a, b) => a + b, 0);
+    return Object.fromEntries(
+      Object.entries(strategyEfficiency).map(([strategy, efficiency]) => [
+        strategy,
+        (efficiency / totalEfficiency) * 100,
+      ])
+    );
+  },
+
+  // Time-series budget forecasting
+  forecastBudgetNeed: (historicalUsage, targetSuppression) => {
+    if (!historicalUsage.length) return 0;
+    const avgUsagePerSuppression =
+      historicalUsage.reduce((sum, u) => sum + u, 0) / historicalUsage.length;
+    return targetSuppression * avgUsagePerSuppression;
+  },
+};
+
+/**
+ * Data filtering and search utilities
+ */
+const DataFilter = {
+  // Filter snapshots by belief range
+  filterByBelief: (snapshots, minBelief, maxBelief) => {
+    return snapshots.map(snap => ({
+      ...snap,
+      nodes: snap.nodes.filter(n => n.belief >= minBelief && n.belief <= maxBelief),
+    }));
+  },
+
+  // Find timesteps matching criteria
+  findMatchingTimesteps: (snapshots, criteria) => {
+    return snapshots
+      .map((snap, idx) => {
+        const infected = snap.nodes.filter(n => n.belief > 0.5 && !n.treated).length;
+        const treated = snap.nodes.filter(n => n.treated).length;
+        if (
+          (!criteria.minInfected || infected >= criteria.minInfected) &&
+          (!criteria.maxInfected || infected <= criteria.maxInfected) &&
+          (!criteria.minTreated || treated >= criteria.minTreated) &&
+          (!criteria.maxTreated || treated <= criteria.maxTreated)
+        ) {
+          return idx;
+        }
+        return -1;
+      })
+      .filter(idx => idx !== -1);
+  },
+
+  // Search strategies by performance threshold
+  searchByPerformance: (results, minSuppression, maxSuppression) => {
+    return results.filter(
+      r =>
+        r.suppressionPeak >= minSuppression &&
+        r.suppressionPeak <= maxSuppression
+    );
+  },
+};
+
+/**
+ * Time-series analysis tools
+ */
+const TimeSeriesAnalyzer = {
+  // Detect peaks in time series
+  detectPeaks: (values, prominence = 1) => {
+    const peaks = [];
+    for (let i = 1; i < values.length - 1; i++) {
+      if (values[i] > values[i - 1] && values[i] > values[i + 1]) {
+        const p = (values[i] - values[i - 1]) + (values[i] - values[i + 1]);
+        if (p >= prominence) peaks.push({ index: i, value: values[i], prominence: p });
+      }
+    }
+    return peaks;
+  },
+
+  // Detect valleys (troughs)
+  detectValleys: (values, prominence = 1) => {
+    const valleys = [];
+    for (let i = 1; i < values.length - 1; i++) {
+      if (values[i] < values[i - 1] && values[i] < values[i + 1]) {
+        const p = (values[i - 1] - values[i]) + (values[i + 1] - values[i]);
+        if (p >= prominence) valleys.push({ index: i, value: values[i], prominence: p });
+      }
+    }
+    return valleys;
+  },
+
+  // Calculate inflection points
+  calculateInflectionPoints: (values) => {
+    const inflections = [];
+    for (let i = 1; i < values.length - 1; i++) {
+      const d1 = values[i] - values[i - 1];
+      const d2 = values[i + 1] - values[i];
+      if ((d1 > 0 && d2 < 0) || (d1 < 0 && d2 > 0)) {
+        inflections.push({ index: i, value: values[i] });
+      }
+    }
+    return inflections;
+  },
+
+  // Linear trend estimation
+  estimateTrend: (values) => {
+    const n = values.length;
+    const sumX = (n * (n - 1)) / 2;
+    const sumX2 = (n * (n - 1) * (2 * n - 1)) / 6;
+    const sumY = values.reduce((a, b) => a + b, 0);
+    const sumXY = values.reduce((sum, v, i) => sum + v * i, 0);
+    
+    const slope = (n * sumXY - sumX * sumY) / (n * sumX2 - sumX * sumX);
+    const intercept = (sumY - slope * sumX) / n;
+    
+    return { slope, intercept, rSquared: null };
+  },
+
+  // Volatility analysis
+  calculateVolatility: (values) => {
+    const diffs = [];
+    for (let i = 1; i < values.length; i++) {
+      diffs.push(Math.abs(values[i] - values[i - 1]));
+    }
+    return {
+      mean: diffs.reduce((a, b) => a + b, 0) / diffs.length,
+      max: Math.max(...diffs),
+      variance: StatisticsEngine.coefficientOfVariation(diffs),
+    };
+  },
+};
+
+/**
+ * Performance benchmarking utilities
+ */
+const Benchmarker = {
+  // Measure execution time
+  measureTime: async (fn) => {
+    const start = performance.now();
+    const result = await fn();
+    const end = performance.now();
+    return { result, duration: end - start };
+  },
+
+  // Compare performance across strategies
+  benchmarkStrategies: (strategies, testFn) => {
+    return Object.fromEntries(
+      strategies.map(strategy => [
+        strategy,
+        {
+          ...Benchmarker.measureTime(() => testFn(strategy)),
+          strategy,
+        },
+      ])
+    );
+  },
+};
+
+/**
+ * Data export and serialization utilities
+ */
+const DataExporter = {
+  // Convert metrics to JSON with formatting
+  toFormattedJSON: (data, pretty = true) => {
+    return JSON.stringify(data, null, pretty ? 2 : 0);
+  },
+
+  // Create downloadable CSV from matrix
+  createMatrixCSV: (matrix, headers) => {
+    const lines = [headers.join(",")];
+    matrix.forEach(row => {
+      lines.push(row.map(v => (typeof v === "string" ? `"${v}"` : v)).join(","));
+    });
+    return lines.join("\n");
+  },
+
+  // Serialize network graph to standard format
+  serializeGraph: (nodes, edges) => {
+    return {
+      nodes: nodes.map(n => ({
+        id: n.id,
+        x: n.x,
+        y: n.y,
+        belief: n.belief,
+        treated: n.treated,
+        isSeed: n.isSeed,
+      })),
+      edges: edges,
+      metadata: {
+        nodeCount: nodes.length,
+        edgeCount: edges.length,
+        timestamp: new Date().toISOString(),
+      },
+    };
+  },
+};
+
 const GRAPH_MODELS = {
   p2p_gnutella: {
     checkpoints: [
@@ -51,11 +500,551 @@ const GRAPH_MODELS = {
   },
 };
 
+// ─────────────────────────────────────────────────────────────────────────────
+// CACHING & SESSION MANAGEMENT
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Lightweight cache system for computed results
+ * Reduces redundant calculations for frequently accessed data
+ */
+class ComputationCache {
+  constructor(maxSize = 100) {
+    this.cache = new Map();
+    this.maxSize = maxSize;
+    this.hits = 0;
+    this.misses = 0;
+  }
+
+  key(...args) {
+    return JSON.stringify(args);
+  }
+
+  set(key, value, ttl = null) {
+    if (this.cache.size >= this.maxSize) {
+      const firstKey = this.cache.keys().next().value;
+      this.cache.delete(firstKey);
+    }
+    this.cache.set(key, { value, timestamp: Date.now(), ttl });
+  }
+
+  get(key) {
+    const entry = this.cache.get(key);
+    if (!entry) {
+      this.misses++;
+      return null;
+    }
+    if (entry.ttl && Date.now() - entry.timestamp > entry.ttl) {
+      this.cache.delete(key);
+      this.misses++;
+      return null;
+    }
+    this.hits++;
+    return entry.value;
+  }
+
+  has(key) {
+    const entry = this.cache.get(key);
+    return entry && (!entry.ttl || Date.now() - entry.timestamp < entry.ttl);
+  }
+
+  clear() {
+    this.cache.clear();
+    this.hits = 0;
+    this.misses = 0;
+  }
+
+  stats() {
+    const total = this.hits + this.misses;
+    return {
+      size: this.cache.size,
+      hits: this.hits,
+      misses: this.misses,
+      hitRate: total > 0 ? (this.hits / total) * 100 : 0,
+    };
+  }
+}
+
+/**
+ * Session state manager for user preferences and history
+ */
+class SessionManager {
+  constructor(storageKey = "dashboard-session") {
+    this.storageKey = storageKey;
+    this.load();
+  }
+
+  load() {
+    try {
+      const stored = localStorage.getItem(this.storageKey);
+      this.state = stored ? JSON.parse(stored) : {};
+    } catch {
+      this.state = {};
+    }
+  }
+
+  save() {
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.state));
+    } catch {
+      console.warn("Failed to save session state");
+    }
+  }
+
+  get(key, defaultValue = null) {
+    return this.state[key] ?? defaultValue;
+  }
+
+  set(key, value) {
+    this.state[key] = value;
+    this.save();
+  }
+
+  update(updates) {
+    this.state = { ...this.state, ...updates };
+    this.save();
+  }
+
+  clear() {
+    this.state = {};
+    localStorage.removeItem(this.storageKey);
+  }
+
+  getHistory(key) {
+    return this.get(`history_${key}`, []);
+  }
+
+  addToHistory(key, value, maxLength = 20) {
+    const history = this.getHistory(key);
+    const newHistory = [value, ...history.filter(v => v !== value)].slice(0, maxLength);
+    this.set(`history_${key}`, newHistory);
+  }
+}
+
+/**
+ * Error handling and logging system
+ */
+const ErrorHandler = {
+  log: (message, context = {}, level = "info") => {
+    const timestamp = new Date().toISOString();
+    console.log(`[${timestamp}] [${level.toUpperCase()}] ${message}`, context);
+  },
+
+  error: (message, error, context = {}) => {
+    ErrorHandler.log(message, { ...context, error: error?.message }, "error");
+  },
+
+  warn: (message, context = {}) => {
+    ErrorHandler.log(message, context, "warn");
+  },
+
+  debug: (message, context = {}) => {
+    if (process.env.DEBUG) {
+      ErrorHandler.log(message, context, "debug");
+    }
+  },
+
+  trackError: (errorName, details) => {
+    ErrorHandler.log(`Error: ${errorName}`, details, "error");
+  },
+};
+
+/**
+ * Validation utilities for data integrity
+ */
+const Validators = {
+  isValidGraph: (nodes, edges) => {
+    return (
+      Array.isArray(nodes) &&
+      Array.isArray(edges) &&
+      nodes.length > 0 &&
+      nodes.every(n => typeof n.id === "number" && typeof n.belief === "number") &&
+      edges.every(e => Array.isArray(e) && e.length === 2)
+    );
+  },
+
+  isValidSnapshot: (snap) => {
+    return snap && Validators.isValidGraph(snap.nodes, snap.edges);
+  },
+
+  validateMetrics: (metrics) => {
+    return Object.entries(metrics).every(
+      ([key, value]) =>
+        typeof value === "number" &&
+        !isNaN(value) &&
+        isFinite(value)
+    );
+  },
+
+  sanitizeNumber: (value, min = -Infinity, max = Infinity, defaultValue = 0) => {
+    const num = Number(value);
+    if (!isFinite(num)) return defaultValue;
+    return Math.max(min, Math.min(max, num));
+  },
+
+  validateBeliefRange: (belief) => {
+    return Validators.sanitizeNumber(belief, 0, 1);
+  },
+};
+
+/**
+ * Metrics computation engine
+ */
+const MetricsEngine = {
+  // Calculate node statistics from snapshot
+  calculateNodeStats: (nodes) => {
+    const infected = nodes.filter(n => n.belief > 0.5 && !n.treated).length;
+    const treated = nodes.filter(n => n.treated).length;
+    const avgBelief = nodes.reduce((sum, n) => sum + n.belief, 0) / nodes.length;
+    const maxBelief = Math.max(...nodes.map(n => n.belief));
+    const minBelief = Math.min(...nodes.map(n => n.belief));
+
+    return { infected, treated, avgBelief, maxBelief, minBelief };
+  },
+
+  // Calculate aggregate metrics from snapshots
+  calculateAggregateMetrics: (snapshots) => {
+    if (!snapshots.length) return null;
+
+    const infectedCurve = snapshots.map(
+      s => s.nodes.filter(n => n.belief > 0.5 && !n.treated).length
+    );
+    const peakInfected = Math.max(...infectedCurve);
+    const finalInfected = infectedCurve[infectedCurve.length - 1];
+    const avgInfected = infectedCurve.reduce((a, b) => a + b, 0) / infectedCurve.length;
+
+    const treatedCurve = snapshots.map(s => s.nodes.filter(n => n.treated).length);
+    const totalTreated = treatedCurve[treatedCurve.length - 1];
+
+    return {
+      peakInfected,
+      finalInfected,
+      avgInfected,
+      totalTreated,
+      aucInfected: infectedCurve.reduce((a, b) => a + b, 0),
+    };
+  },
+
+  // Calculate suppression metrics relative to baseline
+  calculateSuppressionMetrics: (baselineMetrics, strategicMetrics) => {
+    return {
+      peakSuppression: PerformanceAnalyzer.calculateSuppression(
+        baselineMetrics.peakInfected,
+        strategicMetrics.peakInfected
+      ),
+      aucSuppression: PerformanceAnalyzer.calculateSuppression(
+        baselineMetrics.aucInfected,
+        strategicMetrics.aucInfected
+      ),
+      finalSuppression: PerformanceAnalyzer.calculateSuppression(
+        baselineMetrics.finalInfected,
+        strategicMetrics.finalInfected
+      ),
+    };
+  },
+
+  // Cost-benefit analysis
+  calculateCostBenefit: (budgetUsed, suppression) => {
+    return {
+      roi: BudgetOptimizer.calculateROI(budgetUsed, suppression),
+      efficiency: BudgetOptimizer.analyzeBudgetEfficiency(budgetUsed, suppression),
+      costPerPercent: budgetUsed / Math.max(suppression, 0.01),
+    };
+  },
+};
+
 // Generate suppression curves (seeded deterministic)
 function seededRand(seed) {
   let s = seed;
   return () => { s = (s * 1664525 + 1013904223) & 0xffffffff; return (s >>> 0) / 4294967296; };
 }
+
+// ─────────────────────────────────────────────────────────────────────────────
+// COMPUTATIONAL HELPERS & OPTIMIZATION TECHNIQUES
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Curve interpolation and smoothing utilities
+ */
+const CurveUtils = {
+  // Cubic Hermite interpolation for smoother curves
+  cubicHermite: (p0, p1, m0, m1, t) => {
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const h00 = 2 * t3 - 3 * t2 + 1;
+    const h10 = t3 - 2 * t2 + t;
+    const h01 = -2 * t3 + 3 * t2;
+    const h11 = t3 - t2;
+    return h00 * p0 + h10 * m0 + h01 * p1 + h11 * m1;
+  },
+
+  // Catmull-Rom spline interpolation
+  catmullRom: (p0, p1, p2, p3, t) => {
+    const t2 = t * t;
+    const t3 = t2 * t;
+    const v0 = (p2 - p0) * 0.5;
+    const v1 = (p3 - p1) * 0.5;
+    return (2 * p1 - 2 * p2 + v0 + v1) * t3 +
+           (-3 * p1 + 3 * p2 - 2 * v0 - v1) * t2 +
+           v0 * t + p1;
+  },
+
+  // Bezier curve interpolation
+  bezier: (controlPoints, t) => {
+    const n = controlPoints.length - 1;
+    let result = 0;
+    for (let i = 0; i <= n; i++) {
+      const binomial = CurveUtils.binomialCoefficient(n, i);
+      const basis = binomial * Math.pow(1 - t, n - i) * Math.pow(t, i);
+      result += basis * controlPoints[i];
+    }
+    return result;
+  },
+
+  binomialCoefficient: (n, k) => {
+    if (k < 0 || k > n) return 0;
+    if (k === 0 || k === n) return 1;
+    let result = 1;
+    for (let i = 0; i < k; i++) {
+      result = result * (n - i) / (i + 1);
+    }
+    return result;
+  },
+
+  // Adaptive smoothing based on signal characteristics
+  adaptiveSmoothing: (values, sensitivity = 0.5) => {
+    const variance = StatisticsEngine.coefficientOfVariation(values);
+    const alpha = Math.min(0.5, Math.max(0.1, sensitivity * variance / 100));
+    return StatisticsEngine.exponentialMovingAverage(values, alpha);
+  },
+
+  // Noise reduction using median filter
+  medianFilter: (values, windowSize = 3) => {
+    const result = [];
+    const halfWindow = Math.floor(windowSize / 2);
+    for (let i = 0; i < values.length; i++) {
+      const start = Math.max(0, i - halfWindow);
+      const end = Math.min(values.length, i + halfWindow + 1);
+      const window = values.slice(start, end).sort((a, b) => a - b);
+      result.push(window[Math.floor(window.length / 2)]);
+    }
+    return result;
+  },
+};
+
+/**
+ * Sampling and distribution utilities
+ */
+const SamplingUtils = {
+  // Weighted random sampling
+  weightedSample: (items, weights, rng) => {
+    const totalWeight = weights.reduce((a, b) => a + b, 0);
+    let random = rng() * totalWeight;
+    for (let i = 0; i < items.length; i++) {
+      random -= weights[i];
+      if (random < 0) return items[i];
+    }
+    return items[items.length - 1];
+  },
+
+  // Stratified sampling
+  stratifiedSample: (items, strata, count, rng) => {
+    const groups = {};
+    items.forEach((item, idx) => {
+      const key = strata(item);
+      if (!groups[key]) groups[key] = [];
+      groups[key].push(item);
+    });
+
+    const sampled = [];
+    const samplesPerGroup = Math.ceil(count / Object.keys(groups).length);
+    Object.values(groups).forEach(group => {
+      for (let i = 0; i < Math.min(samplesPerGroup, group.length); i++) {
+        const idx = Math.floor(rng() * group.length);
+        sampled.push(group[idx]);
+      }
+    });
+    return sampled.slice(0, count);
+  },
+
+  // Rejection sampling
+  rejectionSample: (targetDist, proposalDist, M, rng) => {
+    let attempts = 0;
+    const maxAttempts = 1000;
+    while (attempts < maxAttempts) {
+      const sample = proposalDist(rng);
+      const u = rng();
+      if (u < targetDist(sample) / (M * proposalDist(sample))) {
+        return sample;
+      }
+      attempts++;
+    }
+    return null;
+  },
+};
+
+/**
+ * Network generation utilities
+ */
+const NetworkGenerators = {
+  // Watts-Strogatz small-world network
+  generateSmallWorld: (n, k, beta, rng) => {
+    const nodes = [];
+    const edges = [];
+    const edgeSet = new Set();
+
+    // Ring lattice
+    for (let i = 0; i < n; i++) {
+      nodes.push({ id: i, x: 0.5, y: 0.5, degree: 0 });
+    }
+
+    for (let i = 0; i < n; i++) {
+      for (let j = 1; j <= k / 2; j++) {
+        const target = (i + j) % n;
+        const key = `${Math.min(i, target)}-${Math.max(i, target)}`;
+        if (!edgeSet.has(key)) {
+          edgeSet.add(key);
+          edges.push([i, target]);
+          nodes[i].degree++;
+          nodes[target].degree++;
+        }
+      }
+    }
+
+    // Rewiring
+    for (let i = 0; i < edges.length; i++) {
+      if (rng() < beta) {
+        const [u, v] = edges[i];
+        let newV = Math.floor(rng() * n);
+        let attempts = 0;
+        while ((newV === u || newV === v || edgeSet.has(`${Math.min(u, newV)}-${Math.max(u, newV)}`)) && attempts < 10) {
+          newV = Math.floor(rng() * n);
+          attempts++;
+        }
+        if (newV !== u && newV !== v) {
+          edges[i][1] = newV;
+        }
+      }
+    }
+
+    return { nodes, edges };
+  },
+
+  // Random regular graph
+  generateRandomRegular: (n, k, rng) => {
+    if ((n * k) % 2 !== 0) throw new Error("n*k must be even");
+    
+    const nodes = [];
+    const stubs = [];
+
+    for (let i = 0; i < n; i++) {
+      nodes.push({ id: i, x: 0.5, y: 0.5, degree: 0 });
+      for (let j = 0; j < k; j++) {
+        stubs.push(i);
+      }
+    }
+
+    const edges = [];
+    const edgeSet = new Set();
+    while (stubs.length > 0) {
+      const i1 = Math.floor(rng() * stubs.length);
+      const i2 = Math.floor(rng() * stubs.length);
+      if (i1 !== i2) {
+        const u = stubs[i1];
+        const v = stubs[i2];
+        const key = `${Math.min(u, v)}-${Math.max(u, v)}`;
+        if (!edgeSet.has(key)) {
+          edgeSet.add(key);
+          edges.push([u, v]);
+          nodes[u].degree++;
+          nodes[v].degree++;
+          stubs.splice(Math.max(i1, i2), 1);
+          stubs.splice(Math.min(i1, i2), 1);
+        }
+      }
+    }
+
+    return { nodes, edges };
+  },
+
+  // Geometric random graph
+  generateGeometricRandom: (n, radius, rng) => {
+    const nodes = [];
+    const edges = [];
+    const edgeSet = new Set();
+
+    for (let i = 0; i < n; i++) {
+      nodes.push({
+        id: i,
+        x: rng(),
+        y: rng(),
+        degree: 0,
+      });
+    }
+
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const dx = nodes[i].x - nodes[j].x;
+        const dy = nodes[i].y - nodes[j].y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        if (dist < radius) {
+          edges.push([i, j]);
+          nodes[i].degree++;
+          nodes[j].degree++;
+        }
+      }
+    }
+
+    return { nodes, edges };
+  },
+};
+
+/**
+ * Clustering and community detection
+ */
+const ClusteringUtils = {
+  // Simple modularity-based clustering
+  detectCommunities: (nodes, edges, numClusters = 3) => {
+    const n = nodes.length;
+    const adj = nodes.map(() => []);
+    edges.forEach(([a, b]) => {
+      adj[a].push(b);
+      adj[b].push(a);
+    });
+
+    // K-means on belief values
+    let centroids = [];
+    for (let i = 0; i < numClusters; i++) {
+      centroids.push(i / numClusters);
+    }
+
+    let clusters = Array(n).fill(0);
+    for (let iter = 0; iter < 10; iter++) {
+      // Assign nodes to nearest centroid
+      clusters = nodes.map(node =>
+        centroids.reduce((closest, _, idx) =>
+          Math.abs(node.belief - centroids[idx]) < Math.abs(node.belief - centroids[closest]) ? idx : closest, 0
+        )
+      );
+
+      // Update centroids
+      const newCentroids = [];
+      for (let c = 0; c < numClusters; c++) {
+        const clusterNodes = nodes.filter((_, idx) => clusters[idx] === c);
+        if (clusterNodes.length > 0) {
+          newCentroids.push(
+            clusterNodes.reduce((sum, n) => sum + n.belief, 0) / clusterNodes.length
+          );
+        } else {
+          newCentroids.push(centroids[c]);
+        }
+      }
+      centroids = newCentroids;
+    }
+
+    return clusters;
+  },
+};
 
 function generateCurve(gname, strategy, timesteps = 51) {
   const rng = seededRand(gname.charCodeAt(0) * 31 + strategy.charCodeAt(0) * 17);
@@ -276,7 +1265,247 @@ function generateNetworkGraph(type, nodes = 80) {
   return { nodes: nodesArr, edges: edgesArr, seedIdx };
 }
 
-// ─── Chart Components (Optimized with Recharts) ───────────────────────────────
+// ─────────────────────────────────────────────────────────────────────────────
+// ADVANCED STATE MANAGEMENT & MEMOIZATION HELPERS
+// ─────────────────────────────────────────────────────────────────────────────
+
+/**
+ * Custom hook for expensive computations with memoization
+ */
+function useMemoizedComputation(computeFn, dependencies, options = {}) {
+  const cacheRef = useRef(new ComputationCache(options.cacheSize || 50));
+  const resultRef = useRef(null);
+  const depsRef = useRef(null);
+
+  const cacheKey = cacheRef.current.key(...dependencies);
+  
+  if (depsRef.current !== cacheKey) {
+    const cached = cacheRef.current.get(cacheKey);
+    if (cached !== null) {
+      resultRef.current = cached;
+    } else {
+      resultRef.current = computeFn();
+      cacheRef.current.set(cacheKey, resultRef.current);
+    }
+    depsRef.current = cacheKey;
+  }
+
+  return resultRef.current;
+}
+
+/**
+ * Custom hook for debounced state updates
+ */
+function useDebouncedState(initialValue, delay = 300) {
+  const [value, setValue] = useState(initialValue);
+  const [debouncedValue, setDebouncedValue] = useState(initialValue);
+  const timeoutRef = useRef(null);
+
+  useEffect(() => {
+    timeoutRef.current = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => clearTimeout(timeoutRef.current);
+  }, [value, delay]);
+
+  return [debouncedValue, setValue, value];
+}
+
+/**
+ * Custom hook for throttled callbacks
+ */
+function useThrottledCallback(callback, delay = 300) {
+  const lastRunRef = useRef(Date.now());
+
+  return useCallback((...args) => {
+    const now = Date.now();
+    if (now - lastRunRef.current >= delay) {
+      lastRunRef.current = now;
+      callback(...args);
+    }
+  }, [callback, delay]);
+}
+
+/**
+ * Custom hook for previous value tracking
+ */
+function usePrevious(value) {
+  const ref = useRef();
+  useEffect(() => {
+    ref.current = value;
+  }, [value]);
+  return ref.current;
+}
+
+/**
+ * Custom hook for async operations with cleanup
+ */
+function useAsync(asyncFunction, immediate = true) {
+  const [state, setState] = useState({
+    status: "idle",
+    data: null,
+    error: null,
+  });
+
+  const execute = useCallback(async () => {
+    setState({ status: "pending", data: null, error: null });
+    try {
+      const response = await asyncFunction();
+      setState({ status: "success", data: response, error: null });
+      return response;
+    } catch (error) {
+      setState({ status: "error", data: null, error });
+      throw error;
+    }
+  }, [asyncFunction]);
+
+  useEffect(() => {
+    if (immediate) {
+      execute();
+    }
+  }, [execute, immediate]);
+
+  return { ...state, execute };
+}
+
+/**
+ * Export configuration and analysis utilities
+ */
+const AnalysisConfig = {
+  // Preset analysis configurations
+  presets: {
+    comprehensive: {
+      includeStats: true,
+      includeDistribution: true,
+      includeTrends: true,
+      includeComparison: true,
+      includeClustering: true,
+    },
+    minimal: {
+      includeStats: true,
+      includeDistribution: false,
+      includeTrends: false,
+      includeComparison: false,
+      includeClustering: false,
+    },
+    focused: {
+      includeStats: true,
+      includeDistribution: true,
+      includeTrends: true,
+      includeComparison: true,
+      includeClustering: false,
+    },
+  },
+
+  // Generate analysis report
+  generateReport: (snapshots, config = {}) => {
+    const finalConfig = { ...AnalysisConfig.presets.comprehensive, ...config };
+    const report = {
+      timestamp: new Date().toISOString(),
+      snapshotCount: snapshots.length,
+    };
+
+    if (finalConfig.includeStats) {
+      const lastSnapshot = snapshots[snapshots.length - 1];
+      report.nodeStats = MetricsEngine.calculateNodeStats(lastSnapshot.nodes);
+      report.aggregateMetrics = MetricsEngine.calculateAggregateMetrics(snapshots);
+    }
+
+    if (finalConfig.includeDistribution) {
+      const beliefs = snapshots.flatMap(s => s.nodes.map(n => n.belief));
+      report.distribution = {
+        ...StatisticsEngine.quartiles(beliefs),
+        skewness: StatisticsEngine.skewness(beliefs),
+        kurtosis: StatisticsEngine.kurtosis(beliefs),
+      };
+    }
+
+    if (finalConfig.includeTrends) {
+      const infectedCurve = snapshots.map(
+        s => s.nodes.filter(n => n.belief > 0.5 && !n.treated).length
+      );
+      report.trends = {
+        slope: TimeSeriesAnalyzer.estimateTrend(infectedCurve).slope,
+        peaks: TimeSeriesAnalyzer.detectPeaks(infectedCurve),
+        valleys: TimeSeriesAnalyzer.detectValleys(infectedCurve),
+        volatility: TimeSeriesAnalyzer.calculateVolatility(infectedCurve),
+      };
+    }
+
+    return report;
+  },
+};
+
+/**
+ * Performance monitoring utilities
+ */
+const PerformanceMonitor = {
+  metrics: {},
+
+  startMeasure: (label) => {
+    PerformanceMonitor.metrics[label] = performance.now();
+  },
+
+  endMeasure: (label) => {
+    if (!PerformanceMonitor.metrics[label]) return null;
+    const duration = performance.now() - PerformanceMonitor.metrics[label];
+    delete PerformanceMonitor.metrics[label];
+    return duration;
+  },
+
+  measure: async (label, fn) => {
+    PerformanceMonitor.startMeasure(label);
+    try {
+      const result = await fn();
+      const duration = PerformanceMonitor.endMeasure(label);
+      ErrorHandler.debug(`${label} completed in ${duration.toFixed(2)}ms`);
+      return result;
+    } catch (error) {
+      PerformanceMonitor.endMeasure(label);
+      throw error;
+    }
+  },
+
+  getMetrics: () => {
+    return Object.entries(PerformanceMonitor.metrics).map(([label, startTime]) => ({
+      label,
+      duration: performance.now() - startTime,
+    }));
+  },
+};
+
+/**
+ * Notification and alert system
+ */
+const NotificationSystem = {
+  notifications: [],
+
+  add: (message, type = "info", duration = 3000) => {
+    const id = Date.now();
+    const notification = { id, message, type, timestamp: Date.now() };
+    NotificationSystem.notifications.push(notification);
+
+    if (duration > 0) {
+      setTimeout(() => NotificationSystem.remove(id), duration);
+    }
+
+    return id;
+  },
+
+  remove: (id) => {
+    NotificationSystem.notifications = NotificationSystem.notifications.filter(n => n.id !== id);
+  },
+
+  success: (message, duration) => NotificationSystem.add(message, "success", duration),
+  error: (message, duration) => NotificationSystem.add(message, "error", duration),
+  warning: (message, duration) => NotificationSystem.add(message, "warning", duration),
+  info: (message, duration) => NotificationSystem.add(message, "info", duration),
+};
+
+// ─────────────────────────────────────────────────────────────────────────────
+// CHART COMPONENTS (Optimized with Recharts)
+// ─────────────────────────────────────────────────────────────────────────────
 function LineChart({ data, height = 240 }) {
   const chartData = useMemo(() => {
     if (!data || !data.length) return [];
