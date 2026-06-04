@@ -291,8 +291,8 @@ export default function ZeroShotPanel({ simulateStrategyAPI }) {
                   const nu = evalResult.snapshots[activeStep].nodes[u];
                   const nv = evalResult.snapshots[activeStep].nodes[v];
                   if (!nu || !nv) return null;
-                  const mapX = (val) => 40 + val * 320;
-                  const mapY = (val) => 30 + val * 240;
+                  const mapX = (val) => 15 + val * 370;
+                  const mapY = (val) => 15 + val * 270;
                   return (
                     <line
                       key={i}
@@ -310,8 +310,8 @@ export default function ZeroShotPanel({ simulateStrategyAPI }) {
                   else if (n.treated) fill = "#1D9E75";
                   else if (n.belief > 0.5) fill = "#E24B4A";
                   else if (n.belief > 0.2) fill = "#EF9F27";
-                  const mapX = (val) => 40 + val * 320;
-                  const mapY = (val) => 30 + val * 240;
+                  const mapX = (val) => 15 + val * 370;
+                  const mapY = (val) => 15 + val * 270;
                   return (
                     <circle
                       key={i}

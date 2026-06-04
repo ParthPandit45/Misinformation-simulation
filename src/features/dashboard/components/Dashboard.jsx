@@ -1,10 +1,24 @@
-import { useState, useEffect } from "react";
-import { predictGNN, simulateStrategyAPI } from "../../../services/api.js";
-import { useRef, useCallback, useMemo } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo, memo } from "react";
+import {
+  LineChart as ReLineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+  Area,
+  ComposedChart,
+  BarChart as ReBarChart,
+  Bar,
+  Cell
+} from "recharts";
 import WorkspaceShell from "./layout/WorkspaceShell.jsx";
 import ResearchWorkbenchPanel from "./research/ResearchWorkbenchPanel.jsx";
 import ZeroShotPanel from "./research/ZeroShotPanel.jsx";
 import { evaluateAcademicBatch, toCSV } from "../../../utils/academicEvaluation.js";
+import { predictGNN, simulateStrategyAPI } from "../../../services/api.js";
 import { GRAPH_META, STRATEGIES, ACTIONS, SUMMARY, loadSummaryOverride } from "../data/dashboardData.js";
 
 const GRAPH_MODELS = {
@@ -262,79 +276,93 @@ function generateNetworkGraph(type, nodes = 80) {
   return { nodes: nodesArr, edges: edgesArr, seedIdx };
 }
 
-// ─── Chart Components ─────────────────────────────────────────────────────────
-function LineChart({ data, width = 600, height = 220, showBand = false }) {
-  const svgRef = useRef(null);
-  const allVals = data.flatMap(s => s.values || []);
-  const maxY = Math.max(...allVals) * 1.08;
-  const minY = 0;
-  const pad = { l: 48, r: 16, t: 12, b: 36 };
-  const W = width - pad.l - pad.r;
-  const H = height - pad.t - pad.b;
-
-  const toX = (i, len) => pad.l + (i / (len - 1)) * W;
-  const toY = (v) => pad.t + H - ((v - minY) / (maxY - minY)) * H;
-
-  const makePath = (vals) =>
-    vals.map((v, i) => `${i === 0 ? "M" : "L"}${toX(i, vals.length).toFixed(1)},${toY(v).toFixed(1)}`).join(" ");
-
-  const xTicks = [0, 10, 20, 30, 40, 50];
-  const yTicks = 5;
+// ─── Chart Components (Optimized with Recharts) ───────────────────────────────
+function LineChart({ data, height = 240 }) {
+  const chartData = useMemo(() => {
+    if (!data || !data.length) return [];
+    const timesteps = data[0].values.length;
+    return Array.from({ length: timesteps }, (_, i) => {
+      const entry = { timestep: i };
+      data.forEach(s => {
+        entry[s.id] = s.values[i];
+        if (s.band) {
+          entry[`${s.id}_lo`] = s.band.lo[i];
+          entry[`${s.id}_hi`] = s.band.hi[i];
+        }
+      });
+      return entry;
+    });
+  }, [data]);
 
   return (
-    <svg ref={svgRef} width="100%" viewBox={`0 0 ${width} ${height}`} style={{ overflow: "visible" }}>
-      {/* Grid */}
-      {Array.from({ length: yTicks + 1 }, (_, i) => {
-        const v = minY + (maxY - minY) * (i / yTicks);
-        const y = toY(v);
-        return (
-          <g key={i}>
-            <line x1={pad.l} y1={y} x2={pad.l + W} y2={y} stroke="var(--color-border-tertiary)" strokeWidth="0.5" />
-            <text x={pad.l - 6} y={y + 4} textAnchor="end" fontSize="10" fill="var(--color-text-tertiary)">
-              {Math.round(v)}
-            </text>
-          </g>
-        );
-      })}
-      {xTicks.map(t => (
-        <g key={t}>
-          <line x1={toX(t, 51)} y1={pad.t} x2={toX(t, 51)} y2={pad.t + H} stroke="var(--color-border-tertiary)" strokeWidth="0.5" strokeDasharray="2,3" />
-          <text x={toX(t, 51)} y={pad.t + H + 16} textAnchor="middle" fontSize="10" fill="var(--color-text-tertiary)">{t}</text>
-        </g>
-      ))}
-
-      {/* Band for GNN+RL */}
-      {data.map(s => s.band && (
-        <path
-          key={s.id + "-band"}
-          d={`${s.band.lo.map((v, i) => `${i === 0 ? "M" : "L"}${toX(i, s.band.lo.length).toFixed(1)},${toY(v).toFixed(1)}`).join(" ")} L${toX(s.band.hi.length - 1, s.band.hi.length).toFixed(1)},${toY(s.band.hi[s.band.hi.length - 1]).toFixed(1)} ${s.band.hi.slice().reverse().map((v, i) => `L${toX(s.band.hi.length - 1 - i, s.band.hi.length).toFixed(1)},${toY(v).toFixed(1)}`).join(" ")} Z`}
-          fill={s.color}
-          fillOpacity="0.12"
-          stroke="none"
-        />
-      ))}
-
-      {/* Lines */}
-      {data.map(s => (
-        <path
-          key={s.id}
-          d={makePath(s.values)}
-          fill="none"
-          stroke={s.color}
-          strokeWidth={s.id === "gnn_rl" ? 2.5 : 1.5}
-          strokeDasharray={s.dash ? s.dash.join(",") : "0"}
-          strokeOpacity={s.id === "gnn_rl" ? 1 : 0.75}
-        />
-      ))}
-
-      {/* Axis labels */}
-      <text x={pad.l + W / 2} y={height - 4} textAnchor="middle" fontSize="11" fill="var(--color-text-secondary)">Timestep</text>
-      <text x={10} y={pad.t + H / 2} textAnchor="middle" fontSize="11" fill="var(--color-text-secondary)" transform={`rotate(-90, 10, ${pad.t + H / 2})`}>Believers</text>
-    </svg>
+    <div style={{ width: "100%", height, marginTop: "10px" }} className="chart-container">
+      <ResponsiveContainer width="100%" height="100%">
+        <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="timestep" fontSize={10} tick={{ fill: "var(--color-text-tertiary)" }} />
+          <YAxis fontSize={10} tick={{ fill: "var(--color-text-tertiary)" }} />
+          <Tooltip />
+          {data.map(s => (
+            <Line
+              key={s.id}
+              type="monotone"
+              dataKey={s.id}
+              stroke={s.color}
+              strokeWidth={s.id === "gnn_rl" ? 3 : 1.5}
+              dot={false}
+              strokeDasharray={s.dash ? s.dash.join(" ") : "0"}
+              name={s.label}
+              isAnimationActive={false}
+            />
+          ))}
+          {data.map(s => s.band && (
+            <Area
+              key={s.id + "-band"}
+              type="monotone"
+              dataKey={`${s.id}_hi`}
+              dataKey2={`${s.id}_lo`}
+              stroke="none"
+              fill={s.color}
+              fillOpacity={0.1}
+              isAnimationActive={false}
+            />
+          ))}
+        </ComposedChart>
+      </ResponsiveContainer>
+    </div>
   );
 }
 
-function BarChart({ data, width = 560, height = 180 }) {
+function BarChart({ height = 200 }) {
+  const data = useMemo(() => {
+    return Object.entries(GRAPH_META).map(([key, meta]) => {
+      const g = SUMMARY[key];
+      const entry = { name: meta.short };
+      Object.keys(STRATEGIES).forEach(strat => {
+        entry[strat] = strat === "gnn_rl" ? g.gnn_rl.median : g[strat]?.median ?? 0;
+      });
+      return entry;
+    });
+  }, []);
+
+  return (
+    <div style={{ width: "100%", height }} className="chart-container">
+      <ResponsiveContainer width="100%" height="100%">
+        <ReBarChart data={data} margin={{ top: 20, right: 30, left: -20, bottom: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" vertical={false} />
+          <XAxis dataKey="name" fontSize={10} tick={{ fill: "var(--color-text-tertiary)" }} />
+          <YAxis fontSize={10} tick={{ fill: "var(--color-text-tertiary)" }} />
+          <Tooltip cursor={{ fill: "transparent" }} />
+          {Object.entries(STRATEGIES).map(([id, strat]) => (
+            <Bar key={id} dataKey={id} fill={strat.color} name={strat.label} radius={[2, 2, 0, 0]} />
+          ))}
+        </ReBarChart>
+      </ResponsiveContainer>
+    </div>
+  );
+}
+
+function CustomBarChart({ data, width = 560, height = 180 }) {
   const graphs = Object.keys(GRAPH_META);
   const strategies = Object.keys(STRATEGIES);
   const groupW = width / graphs.length;
@@ -603,13 +631,13 @@ function NetworkGraph({ gname, checkpoint = "final", seed = 0, timestep = 25, sh
   };
 
   const getNodeR = (nd) => {
-    const base = 3 + nd.degree * 0.5;
-    return Math.min(base, 10);
+    const base = 2.5 + nd.degree * 0.4;
+    return Math.min(base, 8);
   };
 
-  // Zoom-out scaling transformations (adds 40px left/right, 30px top/bottom padding)
-  const mapX = useCallback((val) => 40 + val * (width - 80), [width]);
-  const mapY = useCallback((val) => 30 + val * (height - 60), [height]);
+  // Improved coordinate mapping for "zoomed-out" effect with 15% safety padding
+  const mapX = useCallback((val) => 15 + val * (width - 30), [width]);
+  const mapY = useCallback((val) => 15 + val * (height - 30), [height]);
 
   return (
     <div style={{ position: "relative" }}>
@@ -685,6 +713,7 @@ function NetworkGraph({ gname, checkpoint = "final", seed = 0, timestep = 25, sh
     </div>
   );
 }
+const MemoizedNetworkGraph = memo(NetworkGraph);
 
 // Gear Icon SVG
 const GearIcon = () => (
@@ -1202,7 +1231,7 @@ export default function MisinformationSandbox() {
             </div>
           )}
 
-          <NetworkGraph 
+          <MemoizedNetworkGraph 
             gname={selectedGraph} 
             checkpoint={selectedCheckpoint}
             seed={selectedSeed}
