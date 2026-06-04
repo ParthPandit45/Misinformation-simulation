@@ -513,12 +513,14 @@ function BudgetTimeline({ width = 560, height = 160 }) {
 
 function TrainingChart({ gname, type = "reward" }) {
   const meta = SUMMARY[gname];
-  const seeds = [0, 1];
-  const curves = seeds.map(s =>
-    type === "reward"
-      ? generateTrainingCurve(gname, s, meta.episodes)
-      : generateLossCurve(gname, s, meta.episodes)
-  );
+  const seeds = useMemo(() => [0, 1], []);
+  const curves = useMemo(() => {
+    return seeds.map(s =>
+      type === "reward"
+        ? generateTrainingCurve(gname, s, meta.episodes)
+        : generateLossCurve(gname, s, meta.episodes)
+    );
+  }, [gname, type, meta.episodes, seeds]);
   const allVals = curves.flat();
   const minV = Math.min(...allVals);
   const maxV = Math.max(...allVals);
@@ -605,6 +607,10 @@ function NetworkGraph({ gname, checkpoint = "final", seed = 0, timestep = 25, sh
     return Math.min(base, 10);
   };
 
+  // Zoom-out scaling transformations (adds 40px left/right, 30px top/bottom padding)
+  const mapX = useCallback((val) => 40 + val * (width - 80), [width]);
+  const mapY = useCallback((val) => 30 + val * (height - 60), [height]);
+
   return (
     <div style={{ position: "relative" }}>
       <svg
@@ -618,8 +624,8 @@ function NetworkGraph({ gname, checkpoint = "final", seed = 0, timestep = 25, sh
           const isHighlighted = hovered === a || hovered === b;
           return (
             <line key={i}
-              x1={na.x * width} y1={na.y * height}
-              x2={nb.x * width} y2={nb.y * height}
+              x1={mapX(na.x)} y1={mapY(na.y)}
+              x2={mapX(nb.x)} y2={mapY(nb.y)}
               stroke={isHighlighted ? GRAPH_META[gname].color : "var(--color-border-tertiary)"}
               strokeWidth={isHighlighted ? 1.5 : 0.5}
               strokeOpacity={isHighlighted ? 0.8 : 0.4}
@@ -629,10 +635,10 @@ function NetworkGraph({ gname, checkpoint = "final", seed = 0, timestep = 25, sh
         {/* Nodes */}
         {graph.nodes.map(nd => {
           const r = getNodeR(nd);
-          const x = nd.x * width, y = nd.y * height;
+          const x = mapX(nd.x), y = mapY(nd.y);
           const isHov = hovered === nd.id;
           return (
-              <circle key={nd.id}
+            <circle key={nd.id}
               cx={x} cy={y} r={isHov ? r * 1.6 : r}
               fill={getNodeColor(nd)}
               stroke={nd.isSeed ? "var(--accent)" : "none"}
@@ -647,7 +653,7 @@ function NetworkGraph({ gname, checkpoint = "final", seed = 0, timestep = 25, sh
         {/* Hover tooltip */}
         {hovered !== null && (() => {
           const nd = graph.nodes[hovered];
-          const x = nd.x * width, y = nd.y * height;
+          const x = mapX(nd.x), y = mapY(nd.y);
           const tx = x > width * 0.7 ? x - 120 : x + 12;
           const ty = y > height * 0.8 ? y - 60 : y + 8;
           return (
@@ -744,7 +750,6 @@ export default function MisinformationSandbox() {
   const [activeTab, setActiveTab] = useState("overview");
   const [selectedGraph, setSelectedGraph] = useState("p2p_gnutella");
   const [showIntervened, setShowIntervened] = useState(true);
-  const [animFrame, setAnimFrame] = useState(0);
   const [summaryVersion, setSummaryVersion] = useState(0);
   const [selectedStrategySim, setSelectedStrategySim] = useState('none');
   const [simSnapshots, setSimSnapshots] = useState(null);
@@ -767,11 +772,6 @@ export default function MisinformationSandbox() {
     setSelectedCheckpoint("final");
     setSelectedSeed(0);
   }, [selectedGraph]);
-
-  useEffect(() => {
-    const id = setInterval(() => setAnimFrame(f => (f + 1) % 100), 80);
-    return () => clearInterval(id);
-  }, []);
 
   useEffect(() => {
     let cancelled = false;

@@ -1,95 +1,189 @@
-/* Mega Dashboard – Dark Charcoal Theme with Teal‑Green Accent */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap');
 
-/* Core design tokens */
+/* Mega Dashboard – Modern Premium High-fidelity Theme */
 :root {
-  /* Backgrounds */
-  --color-background-primary: #0b1220; /* Charcoal page background */
-  --color-background-secondary: #0f1724; /* Panel / surface */
-  --color-card: #0b1420; /* Card background */
+  /* Colors */
+  --color-background-primary: #080d19;   /* Deep space background */
+  --color-background-secondary: #0e1626; /* Glassmorphic panel base */
+  --color-card: #0a1120;                  /* Card background */
 
   /* Text */
-  --color-text-primary: #e6eef8; /* Primary text */
-  --color-text-secondary: #9aa6b2; /* Secondary/muted text */
-  --color-text-tertiary: rgba(230,238,248,0.8);
+  --color-text-primary: #f1f5f9;          /* High contrast slate-white */
+  --color-text-secondary: #94a3b8;        /* Slate muted text */
+  --color-text-tertiary: #64748b;         /* Muted label gray */
 
   /* Accent */
-  --color-accent: #00bfa5; /* Teal‑green accent */
-  --color-accent-secondary: #00c5b7; /* Slightly lighter teal for hover */
+  --color-accent: #00e5c9;                /* Radiant neon teal */
+  --color-accent-secondary: #00f2d5;      /* Lighter accent hover */
+  --color-accent-dim: rgba(0, 229, 201, 0.1);
 
   /* Borders & shadows */
-  --color-border-primary: rgba(255,255,255,0.06);
-  --color-border-secondary: rgba(255,255,255,0.04);
-  --color-border: rgba(255,255,255,0.06);
-  --color-glass: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  --color-border-primary: rgba(255, 255, 255, 0.05);
+  --color-border-secondary: rgba(255, 255, 255, 0.08);
+  --color-border-tertiary: rgba(255, 255, 255, 0.14);
+  --color-glass: linear-gradient(180deg, rgba(255, 255, 255, 0.03) 0%, rgba(255, 255, 255, 0.01) 100%);
+  --shadow-premium: 0 12px 30px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
 
-  /* Misc */
+  /* Border radius */
   --border-radius-md: 8px;
-  --border-radius-lg: 12px;
-  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  --border-radius-lg: 16px;
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
 }
 
-/* Global resets */
-*, *::before, *::after { box-sizing: border-box; }
+/* Global resets & style defaults */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
 
 body {
   margin: 0;
   font-family: var(--font-sans);
+  background-color: var(--color-background-primary);
+  background-image: 
+    radial-gradient(at 0% 0%, rgba(0, 229, 201, 0.03) 0px, transparent 50%),
+    radial-gradient(at 50% 0%, rgba(127, 119, 221, 0.04) 0px, transparent 50%);
+  background-attachment: fixed;
+  color: var(--color-text-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Scrollbar customization */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
   background: var(--color-background-primary);
-  color: var(--color-text-primary);
 }
-
-/* Containers */
-main, .app, #root {
-  background: transparent;
-  color: var(--color-text-primary);
+::-webkit-scrollbar-thumb {
+  background: var(--color-border-secondary);
+  border-radius: 4px;
 }
-
-/* Links */
-a {
-  color: var(--color-accent);
-  text-decoration: none;
-}
-a:hover { text-decoration: underline; }
-
-/* Cards / Panels */
-.card, .panel {
-  background: var(--color-background-secondary);
-  border: 1px solid var(--color-border-primary);
-  box-shadow: 0 6px 18px rgba(2,6,23,0.6);
-  border-radius: var(--border-radius-md);
-}
-
-/* Buttons */
-button, .btn {
-  background: transparent;
-  color: var(--color-text-primary);
-  border: 1px solid var(--color-border-primary);
-  padding: 8px 12px;
-  border-radius: 6px;
-  cursor: pointer;
-}
-button.primary, .btn-primary {
+::-webkit-scrollbar-thumb:hover {
   background: var(--color-accent);
-  border: none;
-  color: white;
 }
-button.primary:hover, .btn-primary:hover { background: var(--color-accent-secondary); }
 
-/* Form controls */
-input, textarea, select {
+/* Tables styling */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+}
+th {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  border-bottom: 1.5px solid var(--color-border-secondary);
+  padding: 12px 10px;
+}
+td {
+  padding: 12px 10px;
+  border-bottom: 1px solid var(--color-border-primary);
+  color: var(--color-text-secondary);
+}
+tr:hover td {
+  color: var(--color-text-primary);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+/* Form Controls & Inputs */
+input[type="number"],
+input[type="text"],
+input[type="range"],
+select {
+  font-family: var(--font-sans);
   background: var(--color-card);
   color: var(--color-text-primary);
-  border: 1px solid var(--color-border-primary);
-  padding: 8px 10px;
-  border-radius: 6px;
+  border: 1px solid var(--color-border-secondary);
+  padding: 8px 12px;
+  border-radius: 8px;
+  outline: none;
+  font-size: 13px;
+  transition: all 0.2s ease-in-out;
+}
+input[type="number"]:focus,
+input[type="text"]:focus,
+select:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 2px var(--color-accent-dim);
 }
 
-/* Typography */
-h1, h2, h3, h4, h5, h6 { color: var(--color-text-primary); margin: 0 0 8px 0; }
-p, span, label { color: var(--color-text-secondary); }
+/* Buttons styling with micro-interactions */
+button, .btn {
+  font-family: var(--font-sans);
+  background: rgba(255, 255, 255, 0.02);
+  color: var(--color-text-secondary);
+  border: 1px solid var(--color-border-secondary);
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+button:hover:not(:disabled) {
+  border-color: var(--color-accent);
+  color: var(--color-text-primary);
+  background: rgba(0, 229, 201, 0.05);
+  transform: translateY(-1px);
+}
+button:active:not(:disabled) {
+  transform: translateY(0);
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
 
-/* Utility classes */
-.glow, .neon { box-shadow: none; text-shadow: none; }
+.btn-primary {
+  background: var(--color-accent) !important;
+  color: #080d19 !important; /* Dark contrast */
+  border: none !important;
+  font-weight: 600 !important;
+  box-shadow: 0 4px 12px rgba(0, 229, 201, 0.2) !important;
+}
+.btn-primary:hover:not(:disabled) {
+  background: var(--color-accent-secondary) !important;
+  box-shadow: 0 6px 16px rgba(0, 229, 201, 0.35) !important;
+}
+
+/* Sidebar Tab navigation classes */
+.sidebar-tab {
+  width: 100%;
+  text-align: left;
+  border-radius: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--color-text-secondary);
+  padding: 10px 14px;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 500;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.sidebar-tab:hover {
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--color-text-primary);
+  border-color: rgba(255, 255, 255, 0.05);
+}
+.sidebar-tab.active {
+  border-color: var(--color-accent) !important;
+  background: var(--color-background-primary) !important;
+  color: var(--color-text-primary) !important;
+  font-weight: 600 !important;
+  box-shadow: 0 0 14px rgba(0, 229, 201, 0.08) !important;
+}
+
+/* Typography elements */
+h1, h2, h3, h4, h5, h6 {
+  font-weight: 600;
+  color: var(--color-text-primary);
+  letter-spacing: -0.015em;
+}
 
 /* Legacy variable aliases for backward compatibility */
 :root {
@@ -101,4 +195,48 @@ p, span, label { color: var(--color-text-secondary); }
   --accent: var(--color-accent);
   --border: var(--color-border-primary);
   --glass: var(--color-glass);
+}
+
+/* Recharts Customization */
+.recharts-cartesian-grid-horizontal line,
+.recharts-cartesian-grid-vertical line {
+  stroke: var(--color-border-primary);
+  stroke-opacity: 0.5;
+}
+
+.recharts-default-tooltip {
+  background-color: var(--color-background-secondary) !important;
+  border: 1px solid var(--color-border-tertiary) !important;
+  border-radius: var(--border-radius-md) !important;
+  box-shadow: var(--shadow-premium) !important;
+}
+
+.recharts-tooltip-label {
+  color: var(--color-text-primary) !important;
+  font-weight: 600 !important;
+  margin-bottom: 4px;
+}
+
+.recharts-legend-item-text {
+  color: var(--color-text-secondary) !important;
+  font-size: 12px !important;
+}
+
+/* performance optimizations */
+.chart-container {
+  contain: content;
+  will-change: transform;
+}
+
+svg {
+  shape-rendering: crispEdges; /* Improved performance for grid lines */
+}
+
+svg circle, svg line, svg path {
+  shape-rendering: geometricPrecision; /* Better quality for dynamic elements */
+}
+
+/* Smooth tab transitions */
+section {
+  transition: opacity 0.2s ease-in-out;
 }

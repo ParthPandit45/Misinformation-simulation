@@ -9,40 +9,37 @@ export default function WorkspaceShell({ tabs, active, onChange, children }) {
   return (
     <div style={{
       display: "grid",
-      gridTemplateColumns: "220px minmax(0, 1fr)",
-      gap: "14px",
+      gridTemplateColumns: "230px minmax(0, 1fr)",
+      gap: "20px",
       alignItems: "start",
     }}>
       <aside style={{
         position: "sticky",
-        top: "14px",
+        top: "20px",
         background: "var(--color-background-secondary)",
-        border: "1px solid var(--color-border-tertiary)",
+        border: "1px solid var(--color-border-primary)",
+        boxShadow: "var(--shadow-premium)",
         borderRadius: "var(--border-radius-lg)",
-        padding: "10px",
+        padding: "16px",
       }}>
-        <div style={{ fontSize: "11px", color: "var(--color-text-tertiary)", marginBottom: "8px", letterSpacing: "0.04em", textTransform: "uppercase" }}>
+        <div style={{ 
+          fontSize: "11px", 
+          color: "var(--color-text-tertiary)", 
+          marginBottom: "12px", 
+          letterSpacing: "0.06em", 
+          textTransform: "uppercase",
+          fontWeight: 700 
+        }}>
           Workspace Views
         </div>
-        <div style={{ display: "grid", gap: "6px" }}>
+        <div style={{ display: "grid", gap: "8px" }}>
           {tabs.map((tab) => {
             const isActive = tab.id === active;
             return (
               <button
                 key={tab.id}
                 onClick={() => onChange(tab.id)}
-                style={{
-                  width: "100%",
-                  textAlign: "left",
-                  borderRadius: "8px",
-                  border: isActive ? "1px solid var(--accent)" : "1px solid transparent",
-                  background: isActive ? "var(--color-background-primary)" : "transparent",
-                  color: isActive ? "var(--color-text-primary)" : "var(--color-text-secondary)",
-                  padding: "9px 10px",
-                  cursor: "pointer",
-                  fontSize: "13px",
-                  fontWeight: isActive ? 600 : 500,
-                }}
+                className={`sidebar-tab ${isActive ? "active" : ""}`}
               >
                 {tab.label}
               </button>
@@ -53,9 +50,10 @@ export default function WorkspaceShell({ tabs, active, onChange, children }) {
 
       <section style={{
         background: "var(--color-background-secondary)",
-        border: "1px solid var(--color-border-tertiary)",
+        border: "1px solid var(--color-border-primary)",
+        boxShadow: "var(--shadow-premium)",
         borderRadius: "var(--border-radius-lg)",
-        padding: "14px",
+        padding: "24px",
       }}>
         {children}
       </section>

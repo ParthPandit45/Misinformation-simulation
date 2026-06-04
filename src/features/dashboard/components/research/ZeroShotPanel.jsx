@@ -291,11 +291,13 @@ export default function ZeroShotPanel({ simulateStrategyAPI }) {
                   const nu = evalResult.snapshots[activeStep].nodes[u];
                   const nv = evalResult.snapshots[activeStep].nodes[v];
                   if (!nu || !nv) return null;
+                  const mapX = (val) => 40 + val * 320;
+                  const mapY = (val) => 30 + val * 240;
                   return (
                     <line
                       key={i}
-                      x1={nu.x * 400} y1={nu.y * 300}
-                      x2={nv.x * 400} y2={nv.y * 300}
+                      x1={mapX(nu.x)} y1={mapY(nu.y)}
+                      x2={mapX(nv.x)} y2={mapY(nv.y)}
                       stroke="var(--color-border-tertiary)"
                       strokeWidth="0.4"
                     />
@@ -308,10 +310,12 @@ export default function ZeroShotPanel({ simulateStrategyAPI }) {
                   else if (n.treated) fill = "#1D9E75";
                   else if (n.belief > 0.5) fill = "#E24B4A";
                   else if (n.belief > 0.2) fill = "#EF9F27";
+                  const mapX = (val) => 40 + val * 320;
+                  const mapY = (val) => 30 + val * 240;
                   return (
                     <circle
                       key={i}
-                      cx={n.x * 400} cy={n.y * 300}
+                      cx={mapX(n.x)} cy={mapY(n.y)}
                       r={n.isSeed ? 4.5 : 2.5}
                       fill={fill}
                     />
