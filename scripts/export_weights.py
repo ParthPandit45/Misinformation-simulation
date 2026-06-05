@@ -1,5 +1,5 @@
 """
-export_weights.py — After running MEGA notebook, use this to bundle results for the dashboard.
+export_weights.py — After running the training notebook, use this to bundle results for the dashboard.
 
 Usage:
     python scripts/export_weights.py --summary summary_results.json --weights weights/

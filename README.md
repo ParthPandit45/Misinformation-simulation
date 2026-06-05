@@ -21,7 +21,7 @@ The **Misinformation Sandbox** is an interactive academic workbench and visualiz
 ## Repository Structure
 
 ```text
-mega-dashboard-repo/
+misinformation-simulation/
 ├─ .gitignore                 # Ignored files (node_modules, build artefacts, etc.)
 ├─ README.md                  # This file
 ├─ package.json                # npm dependencies & scripts
@@ -126,4 +126,4 @@ This project is licensed under the **MIT License** – see the `LICENSE` file fo
 
 ---
 
-*Enjoy exploring misinformation containment strategies!*
+

@@ -15,7 +15,7 @@ Therefore, the core problem is to design an intelligent, dynamic agent that can:
 ---
 
 ## 2. Methodology
-To solve the dynamic containment problem, the **MEGA** framework implements a joint architecture combining **Graph Neural Networks (GNN)** and **Deep Reinforcement Learning (DRL)**. 
+To solve the dynamic containment problem, the proposed framework implements a joint architecture combining **Graph Neural Networks (GNN)** and **Deep Reinforcement Learning (DRL)**. 
 
 ```mermaid
 graph TD
@@ -62,7 +62,7 @@ $$\mathbf{h}_2 = \text{ReLU}(\text{LayerNorm}(\text{GCNConv}(\mathbf{h}_1, E))) 
 $$\mathbf{h}_3 = \text{ReLU}(\text{LayerNorm}(\text{GCNConv}(\mathbf{h}_2, E)))$$
 $$\mathbf{y}_{\text{risk}} = \sigma(\text{GCNConv}(\mathbf{h}_3, E))$$
 
-To optimize execution speed, GNN inferences are cached and refreshed every $\text{RISK\_CACHE\_STEPS} = 5$ timesteps.
+GNN inferences are cached and refreshed every $\text{RISK\_CACHE\_STEPS} = 5$ timesteps to reduce redundant computation.
 
 ### 2.3 State, Action, and Reward Formulation
 The Deep RL agent interacts with the environment sequentially over $T = 50$ timesteps.
@@ -145,7 +145,7 @@ The table below displays the median peak infection size (and standard deviation 
 ## 4. Conclusions & Recommendations
 
 ### 4.1 Conclusions
-The MEGA framework demonstrates that combining Graph Neural Networks for local risk prediction with Dueling Double DQN for sequential action selection is a powerful methodology for containing diffusion processes. However, its effectiveness is highly sensitive to the topological density of the network:
+This work demonstrates that combining Graph Neural Networks for local risk prediction with Dueling Double DQN for sequential action selection is a powerful methodology for containing diffusion processes. However, its effectiveness is highly sensitive to the topological density of the network:
 - On **sparse networks** (average degree < 10), GNN+RL provides state-of-the-art containment, outperforming traditional centralities.
 - On **dense networks** (average degree > 40), the high propagation rate quickly overwhelms local containment actions, rendering a restricted budget policy ineffective and causing RL policies to collapse.
 
@@ -166,7 +166,7 @@ To address the performance gap on dense graphs, the following improvements are r
 ## 5. References
 - **Project Repository**: [ParthPandit45/COMP-342-Lab GitHub Repository](https://github.com/ParthPandit45/COMP-342-Lab)
 - **Source Code & Data Artifacts**:
-  - Jupyter Notebook Model Training: [possiblyfinalas.ipynb](file:///c:/Users/parth/Desktop/files/mega-dashboard-repo/mega-repo/possiblyfinalas.ipynb)
-  - Quantitative Evaluation Data: [summary_results.json](file:///c:/Users/parth/Desktop/files/mega-dashboard-repo/mega-repo/results/summary_results.json)
-  - Frontend Constants & Override Logic: [dashboardData.js](file:///c:/Users/parth/Desktop/files/mega-dashboard-repo/mega-repo/src/features/dashboard/data/dashboardData.js)
-  - Batch Metrics & Stats Utility: [academicEvaluation.js](file:///c:/Users/parth/Desktop/files/mega-dashboard-repo/mega-repo/src/utils/academicEvaluation.js)
+  - Jupyter Notebook Model Training: `finalnotebook.ipynb`
+  - Quantitative Evaluation Data: `results/summary_results.json`
+  - Frontend Constants & Override Logic: `src/features/dashboard/data/dashboardData.js`
+  - Batch Metrics & Stats Utility: `src/utils/academicEvaluation.js`
