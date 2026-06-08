@@ -1,13 +1,17 @@
-# Node
+# =========================
+# Node / Frontend
+# =========================
 node_modules/
 dist/
 dist-ssr/
 *.local
+.cache/
 
+# =========================
 # Python
+# =========================
 __pycache__/
-*.pyc
-*.pyo
+*.py[cod]
 *.pyd
 .Python
 env/
@@ -18,15 +22,42 @@ pip-delete-this-directory.txt
 .tox/
 .coverage
 .coverage.*
-.cache
 nosetests.xml
 coverage.xml
+htmlcov/
 *.cover
 *.log
 .pytest_cache/
+*.egg-info/
+*.egg
 
-# IDEs and OS-specific files
-.DS_Store
+# =========================
+# Jupyter Notebooks
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Environment & Secrets
+# =========================
+.env
+.env.local
+.env.production
+!.env.example
+
+# =========================
+# Data & Results (large files)
+# =========================
+results/*.npz
+results/*.txt
+results/*.zip
+results/*.json
+results/plots/
+results/weights/
+summary_results.json
+
+# =========================
+# IDEs & Editors
+# =========================
 .vscode/
 .idea/
 *.suo
@@ -34,9 +65,30 @@ coverage.xml
 *.njsproj
 *.sln
 *.sw?
+*.sublime-workspace
+*.sublime-project
+
+# =========================
+# OS-specific
+# =========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+ehthumbs.db
+
+# =========================
+# AI / Agent tooling
+# =========================
 .gemini/
 .antigravity/
-.env
 
-# Local Netlify folder
-.netlify
+# =========================
+# Deployment / Hosting
+# =========================
+.netlify/
+
+# =========================
+# Docker (optional caches)
+# =========================
+*.pid
+*.seed
